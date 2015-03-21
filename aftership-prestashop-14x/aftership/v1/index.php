@@ -120,10 +120,12 @@ function orders() {
 
 	global $db;
 
+	$last_created_at 	= isset($_GET['last_created_at'])?(int)trim($_GET['last_created_at']):(time() - 3 * 60*60*24);
 	$last_updated_at 	= isset($_GET['last_updated_at'])?(int)trim($_GET['last_updated_at']):(time() - 3 * 60*60*24);
 	$page 				= isset($_GET['page'])?(int)trim($_GET['page']):1;
 	$limit 				= isset($_GET['limit'])?(int)trim($_GET['limit']):100;
 
+	$last_created_at = gmdate('Y-m-d H:i:s', $last_created_at);
 	$last_updated_at = gmdate('Y-m-d H:i:s', $last_updated_at);
 
 	if ($page < 1) {
@@ -142,6 +144,7 @@ function orders() {
 		  ON s.`id_state` = a.`id_state`
 		  WHERE o.`id_customer` = c.`id_customer`
 		  AND o.`id_address_delivery` = a.`id_address`
+		  AND o.`date_add` > '".$last_created_at."'
 		  AND o.`date_upd` > '".$last_updated_at."'
 		  AND o.`shipping_number` != ''
 		  AND a.`id_country` = co.`id_country`
@@ -153,6 +156,8 @@ function orders() {
 	$r = $db->query($q);
 
 	$orders = array();
+
+	$order_ids = array();
 
 	for ($i=0;$i<$r->num_rows;$i++) {
 		$d = $r->fetch_assoc();
@@ -177,10 +182,35 @@ function orders() {
 			'name' => $d['firstname'].' '.$d['lastname'],
 			'emails' => array($d['email']),
 			'order_id' => $d['id_order'],
-			'smses' => $d['phone_mobile']?array($d['phone_mobile']):array($d['phone'])
+			'smses' => $d['phone_mobile']?array($d['phone_mobile']):array($d['phone']),
+			'products' => array()
 		);
 
+		$order_ids[] = '"'.$d['reference'].'"';
 	}
+
+	$q = "SELECT o.`reference`, od.`product_name` as product_name, od.`product_quantity` as product_quantity
+		  FROM `"._DB_PREFIX_."orders` o, `"._DB_PREFIX_."order_detail` od
+		  where o.id_order = od.id_order
+		  AND o.reference in (".implode(",", $order_ids).")
+		  ";
+
+	$r = $db->query($q);
+
+	for ($i=0;$i<$r->num_rows;$i++) {
+		$d = $r->fetch_assoc();
+
+		$n = count($orders);
+		for ($j=0;$j<$n; $j++){
+			if ($orders[$j]['order_id'] === $d['reference']){
+				$orders[$j]['products'][] = array(
+					'name' => $d['product_name'],
+					'quantity' => intval($d['product_quantity'])
+				);
+			}
+		}
+	}
+
 	render(200, null, array('orders' => $orders, 'page' => $page, 'limit' => $limit));
 }
 
