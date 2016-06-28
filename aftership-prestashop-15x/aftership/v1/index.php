@@ -127,7 +127,6 @@ function auth() {
 }
 
 function info() {
-	global $plugin_version;
 	render(200, null, array('version_prestashop' => constant('_PS_VERSION_'), 'version_plugin' => '1.0.7'));
 }
 
@@ -282,9 +281,6 @@ if ($db->connect_errno) {
 	render(500, 'Database error');
 	exit();
 }
-
-/* set plugin version */
-$plugin_version = "1.0.0";
 
 /* utf-8 */
 $db->query("SET NAMES utf8");
