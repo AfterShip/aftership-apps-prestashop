@@ -193,7 +193,7 @@ function orders() {
 			'destination_country_iso2' => $d['country_name'],
 			'destination_state' => $d['state_name'],
 			'destination_city' => $d['city'],
-			'destination_zip' => $d['postcode'],
+			'tracking_postal_code' => $d['postcode'],
 			'destination_address' => join(', ', $addresses),
 			'tracking_number' => strtoupper($d['shipping_number']),
 			'name' => $d['firstname'].' '.$d['lastname'],
