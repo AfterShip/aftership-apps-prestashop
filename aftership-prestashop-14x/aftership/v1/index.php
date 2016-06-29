@@ -137,9 +137,13 @@ function orders() {
 	// by default handle as old version
 	$time_criteria = "AND o.`date_add` > '".$last_created_at."' AND o.`date_upd` > '".$last_updated_at."'";
 
-	// handle as new version if created_at_max and updated_at_max are set
-	if ($created_at_max != NULL && $updated_at_max != NULL) {
-		$time_criteria = "AND o.`date_add` < '".gmdate('Y-m-d H:i:s', $created_at_max)."' AND o.`date_upd` < '".gmdate('Y-m-d H:i:s', $updated_at_max)."'";
+	// handle created_at_max
+	if ($created_at_max != NULL) {
+		$time_criteria .= " AND o.`date_add` < '".gmdate('Y-m-d H:i:s', $created_at_max)."' ";
+	}
+	// handle updated_at_max
+	if ($updated_at_max != NULL) {
+		$time_criteria .= " AND o.`date_upd` < '".gmdate('Y-m-d H:i:s', $updated_at_max)."'";
 	}
 
 	if ($page < 1) {
