@@ -117,7 +117,8 @@ function auth() {
 }
 
 function info() {
-	render(200, null, array('version_prestashop' => constant('_PS_VERSION_'), 'version_plugin' => '1.0.7'));
+	$aftership_instance = Module::getInstanceByName('aftership');
+	render(200, null, array('version_prestashop' => constant('_PS_VERSION_'), 'version_plugin' => $aftership_instance->version));
 }
 
 function orders() {
@@ -261,7 +262,7 @@ function getHostData($host_name) {
 }
 
 //////////////////////////////////////////////////////
-
+require('../../../config/config.inc.php');
 require('../../../config/settings.inc.php');
 
 //db connection

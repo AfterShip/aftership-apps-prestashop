@@ -40,14 +40,14 @@ if( !function_exists('apache_request_headers') ) {
 	}
 }
 
-function checkEnabled($shop_id) {
+function checkEnabled($store_id) {
 	global $db;
 
 	$q = "SELECT * FROM `"._DB_PREFIX_."module` m, `"._DB_PREFIX_."module_shop` ms
 		  WHERE m.`id_module` = ms.`id_module`
 		  AND m.`name` = 'aftership'
 		  AND m.`active` = '1'
-		  AND ms.`id_shop` = '".$shop_id."'
+		  AND ms.`id_shop` = '".$store_id."'
 		  LIMIT 1";
 
 	$r = $db->query($q);
@@ -126,11 +126,12 @@ function auth() {
 	render(200);
 }
 
-function info() {
-	render(200, null, array('version_prestashop' => constant('_PS_VERSION_'), 'version_plugin' => '1.0.7'));
+function info($store_id) {
+	$aftership_instance = Module::getInstanceByName('aftership');
+	render(200, null, array('version_prestashop' => constant('_PS_VERSION_'), 'version_plugin' => $aftership_instance->version, 'store_id' => $store_id));
 }
 
-function orders($shop_id) {
+function orders($store_id) {
 	global $db;
 
 	$created_at_max 	= isset($_GET['created_at_max'])?(int)trim($_GET['created_at_max']):NULL;
@@ -174,7 +175,7 @@ function orders($shop_id) {
 		  AND o.`id_address_delivery` = a.`id_address`
 		  ".$time_criteria."
 		  AND o.`shipping_number` != ''
-		  AND o.`id_shop` = '".$shop_id."'
+		  AND o.`id_shop` = '".$store_id."'
 		  AND a.`id_country` = cl.`id_country`
 		  ORDER BY o.`date_upd` DESC
 		  LIMIT ".$offset.", ".$limit;
@@ -259,7 +260,7 @@ function orders($shop_id) {
 			}
 		}
 	}
-	render(200, null, array('orders' => $orders, 'page' => $page, 'limit' => $limit, 'store_id' => $shop_id));
+	render(200, null, array('orders' => $orders, 'page' => $page, 'limit' => $limit, 'store_id' => $store_id));
 }
 
 function getHostData($host_name) {
@@ -272,7 +273,7 @@ function getHostData($host_name) {
 }
 
 //////////////////////////////////////////////////////
-
+require('../../../config/config.inc.php');
 require('../../../config/settings.inc.php');
 
 //db connection
@@ -307,7 +308,7 @@ switch ($action) {
 		orders($store_id);
 		break;
 	case "info":
-		info();
+		info($store_id);
 		break;
 	default:
 		render(500, 'Action not supported');
