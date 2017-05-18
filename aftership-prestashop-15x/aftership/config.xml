@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <module>
 	<name>aftership</name>
-	<displayName><![CDATA[AfterShip for PrestaShop 1.5.x]]></displayName>
+	<displayName><![CDATA[AfterShip for PrestaShop 1.5.x/1.6.x]]></displayName>
 	<version><![CDATA[1.0.6]]></version>
-	<description><![CDATA[AfterShip Connector for PrestaShop 1.5.x]]></description>
+	<description><![CDATA[AfterShip Connector for PrestaShop 1.5.x/1.6.x]]></description>
 	<author><![CDATA[AfterShip]]></author>
 	<tab><![CDATA[AfterShip]]></tab>
 	<is_configurable>0</is_configurable>
