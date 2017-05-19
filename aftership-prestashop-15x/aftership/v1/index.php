@@ -157,11 +157,12 @@ function orders() {
 
 	$offset = ($page - 1) * $limit;
 
-	$q = "SELECT o.`reference`, o.`shipping_number`, c.`firstname`, c.`lastname`, c.`email`, a.`address1`, a.`address2`, a.`postcode`, a.`city`, a.`phone`, a.`phone_mobile`, cl.`name` as country_name, s.`name` as state_name
-		  FROM `"._DB_PREFIX_."orders` o, `"._DB_PREFIX_."customer` c, `"._DB_PREFIX_."country` co, `"._DB_PREFIX_."country_lang` cl, `"._DB_PREFIX_."address` a
+	$q = "SELECT o.`reference`, o.`shipping_number`, oc.`tracking_number`, c.`firstname`, c.`lastname`, c.`email`, a.`address1`, a.`address2`, a.`postcode`, a.`city`, a.`phone`, a.`phone_mobile`, cl.`name` as country_name, s.`name` as state_name
+		  FROM `"._DB_PREFIX_."orders` o, `"._DB_PREFIX_."order_carrier` oc, `"._DB_PREFIX_."customer` c, `"._DB_PREFIX_."country` co, `"._DB_PREFIX_."country_lang` cl, `"._DB_PREFIX_."address` a
 		  LEFT JOIN `"._DB_PREFIX_."state` s
 		  ON s.`id_state` = a.`id_state`
 		  WHERE o.`id_customer` = c.`id_customer`
+		  AND o.`id_order` = oc.`id_order`
 		  AND o.`id_address_delivery` = a.`id_address`
 		  AND o.`date_add` > '".$last_created_at."'
 		  AND o.`date_upd` > '".$last_updated_at."'
@@ -191,6 +192,12 @@ function orders() {
 			$addresses[] = $d['address2'];
 		}
 
+		// consolidate tracking number, if shipping_number is empty, then use tracking_number instead
+		$tracking_number = $d['shipping_number'];
+		if (empty($d['shipping_number'])) {
+			$tracking_number = $d['tracking_number'];
+		} 
+
 		$orders[] = array(
 			'destination_country_name' => $d['country_name'],
 			'destination_country_iso3' => '',
@@ -198,7 +205,7 @@ function orders() {
 			'destination_city' => $d['city'],
 			'destination_zip' => $d['postcode'],
 			'destination_address' => join(', ', $addresses),
-			'tracking_number' => strtoupper($d['shipping_number']),
+			'tracking_number' => strtoupper($tracking_number),
 			'name' => $d['firstname'].' '.$d['lastname'],
 			'emails' => array($d['email']),
 			'order_id' => $d['reference'],
