@@ -116,10 +116,17 @@ function auth() {
 	render(200);
 }
 
+function info() {
+	$aftership_instance = Module::getInstanceByName('aftership');
+	render(200, null, array('version_prestashop' => constant('_PS_VERSION_'), 'version_plugin' => $aftership_instance->version));
+}
+
 function orders() {
 
 	global $db;
 
+	$created_at_max 	= isset($_GET['created_at_max'])?(int)trim($_GET['created_at_max']):NULL;
+	$updated_at_max 	= isset($_GET['updated_at_max'])?(int)trim($_GET['updated_at_max']):NULL;
 	$last_created_at 	= isset($_GET['last_created_at'])?(int)trim($_GET['last_created_at']):(time() - 3 * 60*60*24);
 	$last_updated_at 	= isset($_GET['last_updated_at'])?(int)trim($_GET['last_updated_at']):(time() - 3 * 60*60*24);
 	$page 				= isset($_GET['page'])?(int)trim($_GET['page']):1;
@@ -127,6 +134,18 @@ function orders() {
 
 	$last_created_at = gmdate('Y-m-d H:i:s', $last_created_at);
 	$last_updated_at = gmdate('Y-m-d H:i:s', $last_updated_at);
+
+	// by default handle as old version
+	$time_criteria = "AND o.`date_add` > '".$last_created_at."' AND o.`date_upd` > '".$last_updated_at."'";
+
+	// handle created_at_max
+	if ($created_at_max != NULL) {
+		$time_criteria .= " AND o.`date_add` < '".gmdate('Y-m-d H:i:s', $created_at_max)."' ";
+	}
+	// handle updated_at_max
+	if ($updated_at_max != NULL) {
+		$time_criteria .= " AND o.`date_upd` < '".gmdate('Y-m-d H:i:s', $updated_at_max)."'";
+	}
 
 	if ($page < 1) {
 		$page = 1;
@@ -138,18 +157,16 @@ function orders() {
 
 	$offset = ($page - 1) * $limit;
 
-	$q = "SELECT o.`id_order`, o.`shipping_number`, c.`firstname`, c.`lastname`, c.`email`, a.`address1`, a.`address2`, a.`postcode`, a.`city`, a.`phone`, a.`phone_mobile`, cl.`name` as country_name, s.`name` as state_name
-		  FROM `"._DB_PREFIX_."orders` o, `"._DB_PREFIX_."customer` c, `"._DB_PREFIX_."country` co, `"._DB_PREFIX_."country_lang` cl, `"._DB_PREFIX_."address` a
+	$q = "SELECT o.`date_add`, o.`date_upd`, o.`id_order`, o.`shipping_number`, c.`firstname`, c.`lastname`, c.`email`, a.`address1`, a.`address2`, a.`postcode`, a.`city`, a.`phone`, a.`phone_mobile`, cl.`iso_code` as country_name, s.`name` as state_name, ca.`name` as slug
+		  FROM `"._DB_PREFIX_."orders` o, `"._DB_PREFIX_."customer` c, `"._DB_PREFIX_."country` cl, `"._DB_PREFIX_."carrier` ca,`"._DB_PREFIX_."address` a
 		  LEFT JOIN `"._DB_PREFIX_."state` s
 		  ON s.`id_state` = a.`id_state`
 		  WHERE o.`id_customer` = c.`id_customer`
+		  AND o.`id_carrier` = ca.`id_carrier`
 		  AND o.`id_address_delivery` = a.`id_address`
-		  AND o.`date_add` > '".$last_created_at."'
-		  AND o.`date_upd` > '".$last_updated_at."'
+		  ".$time_criteria."
 		  AND o.`shipping_number` != ''
-		  AND a.`id_country` = co.`id_country`
-		  AND co.`id_country` = cl.`id_country`
-		  AND cl.`id_lang` = '1'
+		  AND a.`id_country` = cl.`id_country`
 		  ORDER BY o.`date_upd` DESC
 		  LIMIT ".$offset.", ".$limit;
 
@@ -172,27 +189,29 @@ function orders() {
 		}
 
 		$orders[] = array(
-			'destination_country_name' => $d['country_name'],
-			'destination_country_iso3' => '',
+			'created_at' => $d['date_add'],
+			'updated_at' => $d['date_upd'],
+			'destination_country_iso2' => $d['country_name'],
 			'destination_state' => $d['state_name'],
 			'destination_city' => $d['city'],
-			'destination_zip' => $d['postcode'],
+			'tracking_postal_code' => $d['postcode'],
 			'destination_address' => join(', ', $addresses),
 			'tracking_number' => strtoupper($d['shipping_number']),
 			'name' => $d['firstname'].' '.$d['lastname'],
 			'emails' => array($d['email']),
 			'order_id' => $d['id_order'],
 			'smses' => $d['phone_mobile']?array($d['phone_mobile']):array($d['phone']),
+			'slug' => $d['slug']?array($d['slug']):array($d['slug']),
 			'products' => array()
 		);
 
-		$order_ids[] = '"'.$d['reference'].'"';
+		$order_ids[] = '"'.$d['id_order'].'"';
 	}
 
-	$q = "SELECT o.`reference`, od.`product_name` as product_name, od.`product_quantity` as product_quantity
+	$q = "SELECT o.`id_order`, od.`product_name` as product_name, od.`product_quantity` as product_quantity
 		  FROM `"._DB_PREFIX_."orders` o, `"._DB_PREFIX_."order_detail` od
 		  where o.id_order = od.id_order
-		  AND o.reference in (".implode(",", $order_ids).")
+		  AND o.id_order in (".implode(",", $order_ids).")
 		  ";
 
 	$r = $db->query($q);
@@ -202,7 +221,7 @@ function orders() {
 
 		$n = count($orders);
 		for ($j=0;$j<$n; $j++){
-			if ($orders[$j]['order_id'] === $d['reference']){
+			if ($orders[$j]['order_id'] === $d['id_order']){
 				$orders[$j]['products'][] = array(
 					'name' => $d['product_name'],
 					'quantity' => intval($d['product_quantity'])
@@ -211,6 +230,25 @@ function orders() {
 		}
 	}
 
+	$q = "SELECT m.`id_order`, GROUP_CONCAT(m.`message` SEPARATOR ', ') AS msg
+		  FROM `"._DB_PREFIX_."message` m
+		  WHERE m.id_order IN (".implode(",", $order_ids).")
+		  AND m.private = 0
+		  GROUP BY m.id_order
+		  ";
+
+	$r = $db->query($q);
+
+	for ($i=0;$i<$r->num_rows;$i++) {
+		$d = $r->fetch_assoc();
+
+		$n = count($orders);
+		for ($j=0;$j<$n; $j++){
+			if ($orders[$j]['order_id'] === $d['id_order']){
+				$orders[$j]['note'] = $d['msg'];
+			}
+		}
+	}
 	render(200, null, array('orders' => $orders, 'page' => $page, 'limit' => $limit));
 }
 
@@ -224,7 +262,7 @@ function getHostData($host_name) {
 }
 
 //////////////////////////////////////////////////////
-
+require('../../../config/config.inc.php');
 require('../../../config/settings.inc.php');
 
 //db connection
@@ -255,6 +293,9 @@ switch ($action) {
 		break;
 	case "orders":
 		orders();
+		break;
+	case "info":
+		info();
 		break;
 	default:
 		render(500, 'Action not supported');
