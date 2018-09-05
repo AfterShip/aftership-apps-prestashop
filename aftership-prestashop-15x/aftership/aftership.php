@@ -9,7 +9,7 @@ class AfterShip extends Module {
 	{
 		$this->name = 'aftership';
 		$this->tab = 'AfterShip';
-		$this->version = '1.0.7';
+		$this->version = '1.0.8';
 		$this->author = 'AfterShip';
 		$this->need_instance = 0;
 
