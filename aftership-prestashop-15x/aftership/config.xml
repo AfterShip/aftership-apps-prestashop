@@ -2,7 +2,7 @@
 <module>
 	<name>aftership</name>
 	<displayName><![CDATA[AfterShip for PrestaShop 1.5.x/1.6.x]]></displayName>
-	<version><![CDATA[1.0.7]]></version>
+	<version><![CDATA[1.0.8]]></version>
 	<description><![CDATA[AfterShip Connector for PrestaShop 1.5.x/1.6.x]]></description>
 	<author><![CDATA[AfterShip]]></author>
 	<tab><![CDATA[AfterShip]]></tab>
