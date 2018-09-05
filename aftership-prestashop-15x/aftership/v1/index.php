@@ -166,7 +166,6 @@ function orders() {
 		  AND o.`id_address_delivery` = a.`id_address`
 		  AND o.`date_add` > '".$last_created_at."'
 		  AND o.`date_upd` > '".$last_updated_at."'
-		  AND o.`shipping_number` != ''
 		  AND o.`id_shop` = '".$shop_id."'
 		  AND a.`id_country` = co.`id_country`
 		  AND co.`id_country` = cl.`id_country`
@@ -196,7 +195,7 @@ function orders() {
 		$tracking_number = $d['shipping_number'];
 		if (empty($d['shipping_number'])) {
 			$tracking_number = $d['tracking_number'];
-		} 
+		}
 
 		$orders[] = array(
 			'destination_country_name' => $d['country_name'],
