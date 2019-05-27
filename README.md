@@ -1,2 +1,2 @@
 # apps-prestashop
-Plugins for presetashop to sync the data with afetership
+Plugins for PrestaShop to sync the data with AfterShip
